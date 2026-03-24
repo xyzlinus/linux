@@ -78,4 +78,21 @@ case "$OS" in
 esac
 
 printf "\n${GREEN}Success!${NC} Microsoft Intune has been installed.\n"
+
+# Apply polkit rule for Intune agent
+# This allows users in the "users" group to perform necessary actions for device configuration without needing root access.
+# If you don't have a group requirement, just remove the whole "&& subject.isInGroup("users"))" part
+
+printf "${BLUE}==>${NC} Applying Intune polkit rule...\n"
+sudo mkdir -p /etc/polkit-1/rules.d
+cat <<'EOF' | sudo tee /etc/polkit-1/rules.d/intune-agent.rules > /dev/null
+/* Applying configuration from Microsoft Intune Portal */
+polkit.addRule(function(action, subject) {
+    if (action.id == "com.microsoft.intune.actions.ConfigureDevice" &&   subject.isInGroup("users")) {
+        return polkit.Result.YES;
+    }
+});
+EOF
+
+printf "${GREEN}Success!${NC} intune-agent.rules has been created in /etc/polkit-1/rules.d/.\n"
 printf "${BLUE}==>${NC} PLEASE REBOOT your machine to complete the registration setup.\n"
